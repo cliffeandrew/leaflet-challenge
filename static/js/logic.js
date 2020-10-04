@@ -1,85 +1,63 @@
 // Creating map object
-var myMap = L.map("map", {
-    center: [34.0522, -118.2437],
-    zoom: 8
-  });
+  // "https://earthquake.usgs.gov/fdsnws/event/1/application.json";
   
+  function createMap(earthquakeLocations) {
 
-  /*
-  // Adding tile layer
-  L.tileLayer("https://earthquake.usgs.gov/fdsnws/event/1/application.json", {
-    attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-    tileSize: 512,
-    maxZoom: 18,
-    zoomOffset: -1,
-    id: "mapbox/streets-v11",
-    accessToken: API_KEY
-  }).addTo(myMap);
-  */
-
-  // Load in geojson data
-  var geoData = "https://earthquake.usgs.gov/fdsnws/event/1/application.json";
+    // Create the tile layer that will be the background of our map
+    var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+      attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+      maxZoom: 18,
+      id: "light-v10",
+      accessToken: API_KEY
+    });
   
-  var geojson;
-  
-  // Grab data with d3
-  d3.json(geoData, function(data) {
-  
-    // Create a new choropleth layer
-    geojson = L.choropleth(data, {
-  
-      // Define what  property in the features to use
-      valueProperty: "MHI2016",
-  
-      // Set color scale
-      scale: ["#ffffb2", "#b10026"],
-  
-      // Number of breaks in step range
-      steps: 10,
-  
-      // q for quartile, e for equidistant, k for k-means
-      mode: "q",
-      style: {
-        // Border color
-        color: "#fff",
-        weight: 1,
-        fillOpacity: 0.8
-      },
-  
-      // Binding a pop-up to each layer
-      onEachFeature: function(feature, layer) {
-        layer.bindPopup("Zip Code: " + feature.properties.ZIP + "<br>Median Household Income:<br>" +
-          "$" + feature.properties.MHI2016);
-      }
-    }).addTo(myMap);
-  
-    // Set up the legend
-    var legend = L.control({ position: "bottomright" });
-    legend.onAdd = function() {
-      var div = L.DomUtil.create("div", "info legend");
-      var limits = geojson.options.limits;
-      var colors = geojson.options.colors;
-      var labels = [];
-  
-      // Add min & max
-      var legendInfo = "<h1>Median Income</h1>" +
-        "<div class=\"labels\">" +
-          "<div class=\"min\">" + limits[0] + "</div>" +
-          "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
-        "</div>";
-  
-      div.innerHTML = legendInfo;
-  
-      limits.forEach(function(limit, index) {
-        labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
-      });
-  
-      div.innerHTML += "<ul>" + labels.join("") + "</ul>";
-      return div;
+    // Create a baseMaps object to hold the lightmap layer
+    var baseMaps = {
+      "Light Map": lightmap
     };
   
-    // Adding legend to the map
-    legend.addTo(myMap);
+    // Create an overlayMaps object to hold the earthquakeLocations layer
+    var overlayMaps = {
+      "Earthquake Locations": earthquakeLocations
+    };
   
-  });
+    // Create the map object with options
+    var map = L.map("mapid", {
+      center: [40.73, -74.0059],
+      zoom: 12,
+      layers: [lightmap, earthquakeLocations]
+    });
   
+    // Create a layer control, pass in the baseMaps and overlayMaps. Add the layer control to the map
+    L.control.layers(baseMaps, overlayMaps, {
+      collapsed: false
+    }).addTo(map);
+  }
+  
+  function createMarkers(response) {
+  
+    // Pull the "coordinates" property off of response.data
+    var earthquakes = response.features.geometry.coordinates;
+  
+    // Initialize an array to hold earthquake markers
+    var earthquakeMarkers = [];
+  
+    // Loop through the earthquakes array
+    for (var index = 0; index < earthquakes.length; index++) {
+      var earthquake = earthquakes[index];
+  
+      // For each earthquake, create a marker and bind a popup with the earthquakes location
+      var earthquakeMarker = L.marker([earthquake[0], earthquake[1]])
+        .bindPopup("<h3>Latitude: " + earthquake[0] + "<h3><h3>Longitude: " + earthquake[1] + "<h3><h3>Depth: " + depth[2] + "</h3>");
+  
+      // Add the marker to the earthquakeMarkers array
+      earthquakeMarkers.push(earthquakeMarker);
+    }
+  
+    // Create a layer group made from the earthquake markers array, pass it into the createMap function
+    createMap(L.layerGroup(earthquakeMarkers));
+  }
+  
+    // Perform an API call to the API to get earthquake information. Call createMarkers when complete
+  d3.json("https://earthquake.usgs.gov/fdsnws/event/1/application.json", createMarkers);
+  console.log(createMarkers);
